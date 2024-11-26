@@ -18,6 +18,8 @@
 *.zip
 *.tar.gz
 *.rar
+*.exe
+*.msi
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
@@ -28,3 +30,4 @@ SquaredleSolverWork/.idea/*
 SquaredleSolverWork/SquaredleSolverWork.iml
 SquaredleSolverWork/src/*.*
 SquaredleSolverWork/src/out/*
+SquaredleSolverWork/src/custom-jre/*
