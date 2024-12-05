@@ -8,18 +8,19 @@ import java.util.Collections;
 public class LetterGrid {
 
     // instance variables
-    private ArrayList<Node> lettersList;
+    private final ArrayList<Node> letterList;
     private final int size;
     private final ArrayList<String> presentWords;
 
     private static class Node {
-        private char letter;
+        private final char letter;
         private final int row, column;
-
+        private boolean checked;
         public Node(char letter, int row, int column) {
             this.letter = letter;
             this.row = row;
             this.column = column;
+            checked = false;
         }
     }
 
@@ -29,31 +30,16 @@ public class LetterGrid {
      * @param str letters to put in grid
      */
     public LetterGrid(String str) {
-        // size = square root of total numbers
         size = (int) Math.sqrt(str.length());
-        // fill letters list with nodes of each letter in grid
-        lettersList = new ArrayList<>();
+        letterList = new ArrayList<>();
         for (int i = 0; i < str.length(); i++) {
             // / 4 goes 0000,1111,2222,3333 - % 4 goes 0123,0123,0123,0123 (for 4x4 grid)
-            lettersList.add(new Node(str.charAt(i), i / size + 1, i % size + 1));
+            letterList.add(new Node(str.charAt(i), i / size, i % size));
         }
         presentWords = new ArrayList<>();
         this.loadAllWords();
     }
 
-    /**
-     * determines whether going from a given letter to another given letter is a valid move
-     *
-     * @param one starting letter
-     * @param two letter moved to
-     * @return true if valid move, false otherwise
-     */
-    private boolean canMove(Node one, Node two) {
-        // determines whether two nodes are near each other (can't be the same node)
-        int rowDist = Math.abs(one.row - two.row);
-        int columnDist = Math.abs(one.column - two.column);
-        return rowDist < 2 && columnDist < 2 && !(columnDist == 0 && rowDist == 0);
-    }
 
     /**
      * checks whether a word can be made using the given grid
@@ -61,49 +47,58 @@ public class LetterGrid {
      * @param word word to be checked for
      * @return true if word is make-able
      */
-    public boolean isWordPresent(String word) {
-        // flag to set to true if word is found to be present
-        boolean flag = false;
-
-        // find all instances of first letter and check from there whether word can be made
-        for (int i = 0; i < lettersList.size(); i++) {
-            if (lettersList.get(i).letter == word.charAt(0)) {
-                // fill temp list with lettersList as some will be removed in isWordPresent
-                ArrayList<Node> temp = new ArrayList<>(lettersList);
-                // check from each possible starting node
-                flag = isWordPresent(word.substring(1), lettersList.get(i));
-                // reset letter list for next word
-                lettersList = temp;
-                if (flag) return flag;
+    public boolean isWordPresent(String word){
+        for (Node currentNode: letterList){
+            if (word.charAt(0) == currentNode.letter){
+                currentNode.checked = true;
+                if (isWordPresent(word.substring(1), currentNode)){
+                    currentNode.checked = false;
+                    return true;
+                }
+                currentNode.checked = false;
             }
         }
-        // if either letter isn't found or they cannot be moved between, return false
-        return flag;
+        return false;
     }
 
     /**
      * starting from a given node, determine if a word can be made
      *
      * @param word word to be made
-     * @param one  starting node
+     * @param start  starting node
      * @return true if word can be made
      */
-    private boolean isWordPresent(String word, Node one) {
-        boolean flag = false;
-        // iterate through letter list
-        for (int i = 0; i < lettersList.size(); i++) {
-            Node two = lettersList.get(i);
-            ArrayList<Node> temp = new ArrayList<>(lettersList);
+    private boolean isWordPresent(String word, Node start) {
 
-            if (two.letter == word.charAt(0) && this.canMove(one, two)) {
-                if (word.length() == 1) return true;
-                // otherwise switch used letter for a 0
-                int replaceSpot = lettersList.indexOf(one);
-                lettersList.remove(replaceSpot);
-                lettersList.add(replaceSpot, new Node('0', one.row, one.column));
-                flag = this.isWordPresent(word.substring(1), two) || flag;
+        boolean flag = false;
+        int i = start.row;
+        int iEnd = start.row;
+        if (start.row > 0) i--;
+        if (start.row < size - 1) iEnd++;
+
+        for (; i <= iEnd; i++){
+            int j = start.column;
+            int jEnd = start.column;
+            if (start.column > 0) j--;
+            if (start.column < size - 1) jEnd++;
+
+            for (; j <= jEnd; j++){
+                if (i != start.row || j != start.column){
+                    Node currentNode = letterList.get(i * size + j);
+                    if (currentNode.letter == word.charAt(0) && !currentNode.checked){
+                        if (word.length() == 1){
+                            return true;
+                        }
+
+                        currentNode.checked = true;
+                        if (isWordPresent(word.substring(1), currentNode)) {
+                            currentNode.checked = false;
+                            return true;
+                        }
+                        currentNode.checked = false;
+                    }
+                }
             }
-            lettersList = temp;
         }
         return flag;
     }
@@ -113,7 +108,7 @@ public class LetterGrid {
      *
      * @return List of all make-able words
      */
-    private ArrayList<String> allWordsPresentArr() {
+    public ArrayList<String> allWordsPresentArr() {
         return this.presentWords;
     }
 
@@ -138,7 +133,6 @@ public class LetterGrid {
             System.out.println("Failed to read .txt file!");
         }
         for (String str : wordList) {
-            // if word is make-able, add it to list of words
             if (this.isWordPresent(str)) {
                 presentWords.add(str);
             }
@@ -301,7 +295,7 @@ public class LetterGrid {
      */
     public String allWordsPresentByLength() {
         return "Here is a list of every word in this puzzle: \n"
-                + this.formattedByLength(this.allWordsPresentArr());
+                + formattedByLength(this.allWordsPresentArr());
     }
 
     /**
@@ -311,7 +305,7 @@ public class LetterGrid {
      */
     public String allWordsPresentByLetter() {
         return "Here is a list of every word in this puzzle: \n"
-                + this.formattedByLetter(this.allWordsPresentArr());
+                + formattedByLetter(this.allWordsPresentArr());
     }
 
     /**
@@ -343,7 +337,7 @@ public class LetterGrid {
         if (arr.size() == 1) return "The only word in this puzzle with "
                 + length + " letters is: " + arr.getFirst();
         return "The words in this puzzle with " + length + " letters are: \n"
-                + this.formattedByLetter(arr);
+                + formattedByLetter(arr);
     }
 
     /**
@@ -390,7 +384,7 @@ public class LetterGrid {
             return "The only word in this puzzle starting with " + (char) (letter - 'a' + 'A')
                     + " is: " + arr.getFirst();
         return "The words starting with " + (char) (letter - 'a' + 'A') + " are: \n"
-                + this.formattedByLength(arr);
+                + formattedByLength(arr);
     }
 
     /**
@@ -422,7 +416,7 @@ public class LetterGrid {
         for (String word : this.allWordsPresentArr()) {
             if (word.charAt(0) == letter && word.length() == length) arr.add(word);
         }
-        return this.formattedByLetter(arr);
+        return formattedByLetter(arr);
     }
 
     /**
@@ -434,7 +428,7 @@ public class LetterGrid {
         String str = "";
         for (int i = 1; i <= size; i++) {
             for (int j = size; j > 0; j--) {
-                for (Node letter : lettersList) {
+                for (Node letter : letterList) {
                     if (letter.column == i && letter.row == j)
                         str = str.concat(String.valueOf(letter.letter));
                 }
